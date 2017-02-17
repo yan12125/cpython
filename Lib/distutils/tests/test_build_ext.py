@@ -12,6 +12,7 @@ from distutils.extension import Extension
 from distutils.errors import (
     CompileError, DistutilsPlatformError, DistutilsSetupError,
     UnknownFileError)
+from sysconfig import get_config_var
 
 import unittest
 from test import support
@@ -101,17 +102,17 @@ class BuildExtTestCase(TempdirManager,
         old = sys.platform
 
         sys.platform = 'sunos' # fooling finalize_options
-        from distutils.sysconfig import  _config_vars
-        old_var = _config_vars.get('Py_ENABLE_SHARED')
-        _config_vars['Py_ENABLE_SHARED'] = 1
+        from sysconfig import _CONFIG_VARS
+        old_var = _CONFIG_VARS.get('Py_ENABLE_SHARED')
+        _CONFIG_VARS['Py_ENABLE_SHARED'] = 1
         try:
             cmd.ensure_finalized()
         finally:
             sys.platform = old
             if old_var is None:
-                del _config_vars['Py_ENABLE_SHARED']
+                del _CONFIG_VARS['Py_ENABLE_SHARED']
             else:
-                _config_vars['Py_ENABLE_SHARED'] = old_var
+                _CONFIG_VARS['Py_ENABLE_SHARED'] = old_var
 
         # make sure we get some library dirs under solaris
         self.assertGreater(len(cmd.library_dirs), 0)
@@ -327,7 +328,7 @@ class BuildExtTestCase(TempdirManager,
         finally:
             os.chdir(old_wd)
         self.assertTrue(os.path.exists(so_file))
-        ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
+        ext_suffix = get_config_var('EXT_SUFFIX')
         self.assertTrue(so_file.endswith(ext_suffix))
         so_dir = os.path.dirname(so_file)
         self.assertEqual(so_dir, other_tmp_dir)
@@ -364,7 +365,7 @@ class BuildExtTestCase(TempdirManager,
         self.assertEqual(lastdir, 'bar')
 
     def test_ext_fullpath(self):
-        ext = sysconfig.get_config_var('EXT_SUFFIX')
+        ext = get_config_var('EXT_SUFFIX')
         # building lxml.etree inplace
         #etree_c = os.path.join(self.tmp_dir, 'lxml.etree.c')
         #etree_ext = Extension('lxml.etree', [etree_c])
@@ -421,7 +422,7 @@ class BuildExtTestCase(TempdirManager,
         # Issue 9516: Test that an extension module can be compiled with a
         # deployment target higher than that of the interpreter: the ext
         # module may depend on some newer OS feature.
-        deptarget = sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET')
+        deptarget = get_config_var('MACOSX_DEPLOYMENT_TARGET')
         if deptarget:
             # increment the minor version number (i.e. 10.6 -> 10.7)
             deptarget = [int(x) for x in deptarget.split('.')]
@@ -456,7 +457,7 @@ class BuildExtTestCase(TempdirManager,
             ''' % operator))
 
         # get the deployment target that the interpreter was built with
-        target = sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET')
+        target = get_config_var('MACOSX_DEPLOYMENT_TARGET')
         target = tuple(map(int, target.split('.')[0:2]))
         # format the target value as defined in the Apple
         # Availability Macros.  We can't use the macro names since

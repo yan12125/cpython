@@ -13,6 +13,7 @@ import _imp
 import os
 import re
 import sys
+from sysconfig import get_config_var as _get_config_var, get_config_vars as _get_config_vars
 
 from .errors import DistutilsPlatformError
 
@@ -97,9 +98,9 @@ def get_python_inc(plat_specific=0, prefix=None):
             if plat_specific:
                 return base
             if _sys_home:
-                incdir = os.path.join(_sys_home, get_config_var('AST_H_DIR'))
+                incdir = os.path.join(_sys_home, _get_config_var('AST_H_DIR'))
             else:
-                incdir = os.path.join(get_config_var('srcdir'), 'Include')
+                incdir = os.path.join(_get_config_var('srcdir'), 'Include')
             return os.path.normpath(incdir)
         python_dir = 'python' + get_python_version() + build_flags
         return os.path.join(prefix, "include", python_dir)
@@ -166,15 +167,15 @@ def customize_compiler(compiler):
             # that Python itself was built on.  Also the user OS
             # version and build tools may not support the same set
             # of CPU architectures for universal builds.
-            global _config_vars
+            _config_vars = _get_config_vars()
             # Use get_config_var() to ensure _config_vars is initialized.
-            if not get_config_var('CUSTOMIZED_OSX_COMPILER'):
+            if not _get_config_var('CUSTOMIZED_OSX_COMPILER'):
                 import _osx_support
                 _osx_support.customize_compiler(_config_vars)
                 _config_vars['CUSTOMIZED_OSX_COMPILER'] = 'True'
 
         (cc, cxx, opt, cflags, ccshared, ldshared, shlib_suffix, ar, ar_flags) = \
-            get_config_vars('CC', 'CXX', 'OPT', 'CFLAGS',
+            _get_config_vars('CC', 'CXX', 'OPT', 'CFLAGS',
                             'CCSHARED', 'LDSHARED', 'SHLIB_SUFFIX', 'AR', 'ARFLAGS')
 
         if 'CC' in os.environ:
@@ -413,123 +414,8 @@ def expand_makefile_vars(s, vars):
     return s
 
 
-_config_vars = None
-
-def _init_posix():
-    """Initialize the module as appropriate for POSIX systems."""
-    # _sysconfigdata is generated at build time, see the sysconfig module
-    name = os.environ.get('_PYTHON_SYSCONFIGDATA_NAME',
-        '_sysconfigdata_{abi}_{platform}_{multiarch}'.format(
-        abi=sys.abiflags,
-        platform=sys.platform,
-        multiarch=getattr(sys.implementation, '_multiarch', ''),
-    ))
-    _temp = __import__(name, globals(), locals(), ['build_time_vars'], 0)
-    build_time_vars = _temp.build_time_vars
-    global _config_vars
-    _config_vars = {}
-    _config_vars.update(build_time_vars)
-
-
-def _init_nt():
-    """Initialize the module as appropriate for NT"""
-    g = {}
-    # set basic install directories
-    g['LIBDEST'] = get_python_lib(plat_specific=0, standard_lib=1)
-    g['BINLIBDEST'] = get_python_lib(plat_specific=1, standard_lib=1)
-
-    # XXX hmmm.. a normal install puts include files here
-    g['INCLUDEPY'] = get_python_inc(plat_specific=0)
-
-    g['EXT_SUFFIX'] = _imp.extension_suffixes()[0]
-    g['EXE'] = ".exe"
-    g['VERSION'] = get_python_version().replace(".", "")
-    g['BINDIR'] = os.path.dirname(os.path.abspath(sys.executable))
-
-    global _config_vars
-    _config_vars = g
-
-
 def get_config_vars(*args):
-    """With no arguments, return a dictionary of all configuration
-    variables relevant for the current platform.  Generally this includes
-    everything needed to build extensions and install both pure modules and
-    extensions.  On Unix, this means every variable defined in Python's
-    installed Makefile; on Windows it's a much smaller set.
-
-    With arguments, return a list of values that result from looking up
-    each argument in the configuration variable dictionary.
-    """
-    global _config_vars
-    if _config_vars is None:
-        func = globals().get("_init_" + os.name)
-        if func:
-            func()
-        else:
-            _config_vars = {}
-
-        # Normalized versions of prefix and exec_prefix are handy to have;
-        # in fact, these are the standard versions used most places in the
-        # Distutils.
-        _config_vars['prefix'] = PREFIX
-        _config_vars['exec_prefix'] = EXEC_PREFIX
-
-        # For backward compatibility, see issue19555
-        SO = _config_vars.get('EXT_SUFFIX')
-        if SO is not None:
-            _config_vars['SO'] = SO
-
-        # Always convert srcdir to an absolute path
-        srcdir = _config_vars.get('srcdir', project_base)
-        if os.name == 'posix':
-            if python_build:
-                # If srcdir is a relative path (typically '.' or '..')
-                # then it should be interpreted relative to the directory
-                # containing Makefile.
-                base = os.path.dirname(get_makefile_filename())
-                srcdir = os.path.join(base, srcdir)
-            else:
-                # srcdir is not meaningful since the installation is
-                # spread about the filesystem.  We choose the
-                # directory containing the Makefile since we know it
-                # exists.
-                srcdir = os.path.dirname(get_makefile_filename())
-        _config_vars['srcdir'] = os.path.abspath(os.path.normpath(srcdir))
-
-        # Convert srcdir into an absolute path if it appears necessary.
-        # Normally it is relative to the build directory.  However, during
-        # testing, for example, we might be running a non-installed python
-        # from a different directory.
-        if python_build and os.name == "posix":
-            base = project_base
-            if (not os.path.isabs(_config_vars['srcdir']) and
-                base != os.getcwd()):
-                # srcdir is relative and we are not in the same directory
-                # as the executable. Assume executable is in the build
-                # directory and make srcdir absolute.
-                srcdir = os.path.join(base, _config_vars['srcdir'])
-                _config_vars['srcdir'] = os.path.normpath(srcdir)
-
-        # OS X platforms require special customization to handle
-        # multi-architecture, multi-os-version installers
-        if sys.platform == 'darwin':
-            import _osx_support
-            _osx_support.customize_config_vars(_config_vars)
-
-    if args:
-        vals = []
-        for name in args:
-            vals.append(_config_vars.get(name))
-        return vals
-    else:
-        return _config_vars
+    return _get_config_vars(*args)
 
 def get_config_var(name):
-    """Return the value of a single variable using the dictionary
-    returned by 'get_config_vars()'.  Equivalent to
-    get_config_vars().get(name)
-    """
-    if name == 'SO':
-        import warnings
-        warnings.warn('SO is deprecated, use EXT_SUFFIX', DeprecationWarning, 2)
-    return get_config_vars().get(name)
+    return _get_config_var(name)

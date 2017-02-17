@@ -9,6 +9,7 @@ from distutils.core import Command
 from distutils.dep_util import newer
 from distutils.util import convert_path, Mixin2to3
 from distutils import log
+from sysconfig import get_config_var
 import tokenize
 
 # check if Python is called on the first line with this expression
@@ -100,9 +101,9 @@ class build_scripts(Command):
                         executable = self.executable
                     else:
                         executable = os.path.join(
-                            sysconfig.get_config_var("BINDIR"),
-                           "python%s%s" % (sysconfig.get_config_var("VERSION"),
-                                           sysconfig.get_config_var("EXE")))
+                            get_config_var("BINDIR"),
+                           "python%s%s" % (get_config_var("VERSION"),
+                                           get_config_var("EXE")))
                     executable = os.fsencode(executable)
                     shebang = b"#!" + executable + post_interp + b"\n"
                     # Python parser starts to read a script using UTF-8 until

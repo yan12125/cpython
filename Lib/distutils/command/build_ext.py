@@ -16,6 +16,7 @@ from distutils.dep_util import newer_group
 from distutils.extension import Extension
 from distutils.util import get_platform
 from distutils import log
+from sysconfig import get_config_var
 
 from site import USER_BASE
 
@@ -230,10 +231,10 @@ class build_ext(Command):
         # For building extensions with a shared Python library,
         # Python's library directory must be appended to library_dirs
         # See Issues: #1600860, #4366
-        if (sysconfig.get_config_var('Py_ENABLE_SHARED')):
+        if (get_config_var('Py_ENABLE_SHARED')):
             if not sysconfig.python_build:
                 # building third party extensions
-                self.library_dirs.append(sysconfig.get_config_var('LIBDIR'))
+                self.library_dirs.append(get_config_var('LIBDIR'))
             else:
                 # building python standard extensions
                 self.library_dirs.append('.')
@@ -676,7 +677,7 @@ class build_ext(Command):
         of the file from which it will be loaded (eg. "foo/bar.so", or
         "foo\bar.pyd").
         """
-        from distutils.sysconfig import get_config_var
+        from sysconfig import get_config_var
         ext_path = ext_name.split('.')
         ext_suffix = get_config_var('EXT_SUFFIX')
         return os.path.join(*ext_path) + ext_suffix
@@ -723,7 +724,7 @@ class build_ext(Command):
                    (sys.hexversion >> 24, (sys.hexversion >> 16) & 0xff))
             # Get SHLIBS from Makefile
             extra = []
-            for lib in sysconfig.get_config_var('SHLIBS').split():
+            for lib in get_config_var('SHLIBS').split():
                 if lib.startswith('-l'):
                     extra.append(lib[2:])
                 else:
@@ -739,10 +740,10 @@ class build_ext(Command):
             return ext.libraries
         else:
             from distutils import sysconfig
-            if sysconfig.get_config_var('Py_ENABLE_SHARED'):
+            if get_config_var('Py_ENABLE_SHARED'):
                 pythonlib = 'python{}.{}{}'.format(
                     sys.hexversion >> 24, (sys.hexversion >> 16) & 0xff,
-                    sysconfig.get_config_var('ABIFLAGS'))
+                    get_config_var('ABIFLAGS'))
                 return ext.libraries + [pythonlib]
             else:
                 return ext.libraries

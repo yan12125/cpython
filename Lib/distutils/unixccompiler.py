@@ -15,13 +15,13 @@ the "typical" Unix-style command-line C compiler:
 
 import os, sys, re
 
-from distutils import sysconfig
 from distutils.dep_util import newer
 from distutils.ccompiler import \
      CCompiler, gen_preprocess_options, gen_lib_options
 from distutils.errors import \
      DistutilsExecError, CompileError, LibError, LinkError
 from distutils import log
+import sysconfig
 
 if sys.platform == 'darwin':
     import _osx_support
@@ -281,7 +281,7 @@ class UnixCCompiler(CCompiler):
             #       usr/lib/libedit.tbd
             # vs
             #   /usr/lib/libedit.dylib
-            cflags = sysconfig.get_config_var('CFLAGS')
+            cflags = get_config_var('CFLAGS')
             m = re.search(r'-isysroot\s+(\S+)', cflags)
             if m is None:
                 sysroot = '/'

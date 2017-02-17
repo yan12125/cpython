@@ -11,8 +11,8 @@ from distutils.util import (get_platform, convert_path, change_root,
                             rfc822_escape, byte_compile,
                             grok_environment_error)
 from distutils import util # used to patch _environ_checked
-from distutils.sysconfig import get_config_vars
-from distutils import sysconfig
+from sysconfig import get_config_vars
+import sysconfig
 from distutils.tests import support
 import _osx_support
 
@@ -28,7 +28,7 @@ class UtilTestCase(support.EnvironGuard, unittest.TestCase):
         self.join = os.path.join
         self.isabs = os.path.isabs
         self.splitdrive = os.path.splitdrive
-        self._config_vars = copy(sysconfig._config_vars)
+        self._CONFIG_VARS = copy(sysconfig._CONFIG_VARS)
 
         # patching os.uname
         if hasattr(os, 'uname'):
@@ -53,7 +53,7 @@ class UtilTestCase(support.EnvironGuard, unittest.TestCase):
             os.uname = self.uname
         else:
             del os.uname
-        sysconfig._config_vars = copy(self._config_vars)
+        sysconfig._CONFIG_VARS = copy(self._CONFIG_VARS)
         super(UtilTestCase, self).tearDown()
 
     def _set_uname(self, uname):

@@ -3,7 +3,8 @@ import sys
 import unittest
 from test.support import EnvironmentVarGuard, run_unittest
 
-from distutils import sysconfig
+import distutils
+import sysconfig
 from distutils.unixccompiler import UnixCCompiler
 
 class UnixCCompilerTestCase(unittest.TestCase):
@@ -122,7 +123,7 @@ class UnixCCompilerTestCase(unittest.TestCase):
         with EnvironmentVarGuard() as env:
             env['CC'] = 'my_cc'
             del env['LDSHARED']
-            sysconfig.customize_compiler(self.cc)
+            distutils.sysconfig.customize_compiler(self.cc)
         self.assertEqual(self.cc.linker_so[0], 'my_cc')
 
     @unittest.skipUnless(sys.platform == 'darwin', 'test only relevant for OS X')
@@ -138,7 +139,7 @@ class UnixCCompilerTestCase(unittest.TestCase):
         with EnvironmentVarGuard() as env:
             env['CC'] = 'my_cc'
             env['LDSHARED'] = 'my_ld -bundle -dynamic'
-            sysconfig.customize_compiler(self.cc)
+            distutils.sysconfig.customize_compiler(self.cc)
         self.assertEqual(self.cc.linker_so[0], 'my_ld')
 
 

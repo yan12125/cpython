@@ -15,13 +15,14 @@ from distutils.command.install import INSTALL_SCHEMES
 from distutils.core import Distribution
 from distutils.errors import DistutilsOptionError
 from distutils.extension import Extension
+from sysconfig import get_config_var
 
 from distutils.tests import support
 from test import support as test_support
 
 
 def _make_ext_name(modname):
-    return modname + sysconfig.get_config_var('EXT_SUFFIX')
+    return modname + get_config_var('EXT_SUFFIX')
 
 
 class InstallTestCase(support.TempdirManager,
