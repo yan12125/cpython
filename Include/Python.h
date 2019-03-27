@@ -18,10 +18,6 @@
 #error "Python's source code assumes C's unsigned char is an 8-bit type."
 #endif
 
-#if defined(__sgi) && !defined(_SGI_MP_SOURCE)
-#define _SGI_MP_SOURCE
-#endif
-
 #include <stdio.h>
 #ifndef NULL
 #   error "Python.h requires that stdio.h define NULL."
