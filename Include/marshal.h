@@ -22,6 +22,8 @@ PyAPI_FUNC(PyObject *) PyMarshal_ReadLastObjectFromFile(FILE *);
 PyAPI_FUNC(PyObject *) PyMarshal_ReadObjectFromString(const char *,
                                                       Py_ssize_t);
 
+PyAPI_FUNC(void) PyMarshal_EnableDebug(int);
+
 #ifdef __cplusplus
 }
 #endif

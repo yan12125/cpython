@@ -38,6 +38,10 @@ module marshal
 #define MAX_MARSHAL_STACK_DEPTH 2000
 #endif
 
+static int enable_debug = 0;
+
+#define debug_printf(fmt, ...) if (enable_debug) { printf(fmt, __VA_ARGS__); }
+
 #define TYPE_NULL               '0'
 #define TYPE_NONE               'N'
 #define TYPE_FALSE              'F'
@@ -641,6 +645,7 @@ typedef struct {
     char *ptr;
     char *end;
     char *buf;
+    char *start;
     Py_ssize_t buf_size;
     PyObject *refs;  /* a list */
 } RFILE;
@@ -721,6 +726,7 @@ static int
 r_byte(RFILE *p)
 {
     int c = EOF;
+
 
     if (p->ptr != NULL) {
         if (p->ptr < p->end)
@@ -952,6 +958,8 @@ r_ref(PyObject *o, int flag, RFILE *p)
 static PyObject *
 r_object(RFILE *p)
 {
+    debug_printf("starting r_object %lx\n", p->ptr - p->start);
+
     /* NULL is a valid return value, it does not necessarily means that
        an exception is set. */
     PyObject *v, *v2;
@@ -982,6 +990,8 @@ r_object(RFILE *p)
     if (flag) \
         O = r_ref(O, flag, p);\
 } while (0)
+
+    debug_printf("code = %x, type = %c\n", code, type);
 
     switch (type) {
 
@@ -1119,6 +1129,7 @@ r_object(RFILE *p)
         /* fall through */
     case TYPE_SHORT_ASCII:
         n = r_byte(p);
+        debug_printf("reading TYPE_SHORT_ASCII%s n = %ld, %lx\n", is_interned?"_INTERNED":"", n, p->ptr - p->start);
         if (n == EOF) {
             PyErr_SetString(PyExc_EOFError,
                 "EOF read where object expected");
@@ -1128,8 +1139,16 @@ r_object(RFILE *p)
         {
             const char *ptr;
             ptr = r_string(n, p);
+
             if (ptr == NULL)
                 break;
+
+            char *buf = malloc(n + 1);
+            memcpy(buf, ptr, n);
+            buf[n] = '\0';
+            debug_printf("str = %s\n", buf);
+            free(buf);
+
             v = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, ptr, n);
             if (v == NULL)
                 break;
@@ -1374,9 +1393,11 @@ r_object(RFILE *p)
             names = r_object(p);
             if (names == NULL)
                 goto code_error;
+            debug_printf("loading varnames %lx\n", p->ptr - p->start);
             varnames = r_object(p);
             if (varnames == NULL)
                 goto code_error;
+            debug_printf("loading freevars %lx\n", p->ptr - p->start);
             freevars = r_object(p);
             if (freevars == NULL)
                 goto code_error;
@@ -1564,6 +1585,7 @@ PyMarshal_ReadObjectFromString(const char *str, Py_ssize_t len)
     PyObject *result;
     rf.fp = NULL;
     rf.readable = NULL;
+    rf.start = (char *)str;
     rf.ptr = (char *)str;
     rf.end = (char *)str + len;
     rf.buf = NULL;
@@ -1763,6 +1785,7 @@ marshal_loads_impl(PyObject *module, Py_buffer *bytes)
     rf.readable = NULL;
     rf.ptr = s;
     rf.end = s + n;
+    rf.start = s;
     rf.depth = 0;
     if ((rf.refs = PyList_New(0)) == NULL)
         return NULL;
@@ -1831,4 +1854,8 @@ PyMarshal_Init(void)
         return NULL;
     PyModule_AddIntConstant(mod, "version", Py_MARSHAL_VERSION);
     return mod;
+}
+
+void PyMarshal_EnableDebug(int enable) {
+    enable_debug = enable;
 }
